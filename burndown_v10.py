@@ -8,15 +8,20 @@ import matplotlib.pyplot as plt
 def process_data(data, start_date, end_date, interval):
     # Define weekly intervals based on user selection
     if interval == "daily":
+        velocity_str = "/day"
         freq_val = 'D'
     elif interval == "weekly":
+        velocity_str = "/week"
         freq_val = 'W-SUN'
     elif interval == "bi-weekly":
+        velocity_str = "/2-weeks"
         freq_val = '2W-SUN'
     elif interval == "monthly":
+        velocity_str = "/month"
         freq_val = 'M'
     else:
         raise ValueError("Invalid interval selection")
+
 
     date_range = pd.date_range(start=start_date, end=end_date, freq=freq_val)
 
@@ -58,7 +63,8 @@ def process_data(data, start_date, end_date, interval):
             adjusted_value = burndown_df['Remaining_Scope'].iloc[i]
         burndown_df['Adjusted_Predicted_Burndown'].iloc[i] = max(adjusted_value, 0)
 
-    return burndown_df, average_velocity
+
+    return burndown_df, average_velocity, velocity_str
 
 
 def plot_burndown(burndown_df, velocity, start_date, end_date):
@@ -94,7 +100,7 @@ def plot_burndown(burndown_df, velocity, start_date, end_date):
             plt.text(predicted_completion_date, burndown_df['Remaining_Scope'].max() * 0.9, f' {predicted_completion_date.strftime("%Y-%m-%d")}', verticalalignment='center', horizontalalignment='left', color='blue', fontsize=10)
         
         plt.fill_between(past_data['Date'], past_data['Remaining_Scope'], color='green', alpha=0.1)
-        plt.title(f'Burndown Chart (Velocity: {velocity:.2f} story points/week)')
+        plt.title(f'Burndown Chart (Velocity: {velocity:.2f} story points{velocity_str})')
         plt.xlabel('Date')
         plt.ylabel('Story Points')
         plt.xticks(burndown_df['Date'][::2], rotation=45)
@@ -104,9 +110,10 @@ def plot_burndown(burndown_df, velocity, start_date, end_date):
         return plt
 
 # Streamlit App
-interval = st.sidebar.selectbox("Select Interval:", ["daily", "weekly", "bi-weekly", "monthly"])
+interval = st.sidebar.selectbox("Select Interval:", ["bi-weekly", "daily", "weekly", "monthly"])
 
-st.title("Adjusted Burndown Chart Generator")
+
+
 
 start_date = st.sidebar.date_input('Start Date', datetime.date(2022, 7, 1))
 end_date = st.sidebar.date_input('End Date', datetime.date(2024, 1, 1))
@@ -116,6 +123,6 @@ uploaded_file = st.file_uploader("Choose an Excel file", type="xlsx")
 
 if uploaded_file:
     data = pd.read_excel(uploaded_file, parse_dates=['Created', 'Resolved'])
-    burndown_df, velocity = process_data(data, start_date, end_date, interval)
+    burndown_df, velocity, velocity_str = process_data(data, start_date, end_date, interval)
     chart = plot_burndown(burndown_df, velocity, start_date, end_date)
     st.pyplot(chart)
